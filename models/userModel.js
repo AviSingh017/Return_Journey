@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const UserSchema = mongoose.Schema({
-    phonenumber: {type: Number, required: true},
+    phoneNumber: {type: String, required: true},
     otp: {type: Number}
 });
 

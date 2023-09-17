@@ -1,11 +1,15 @@
 const express = require("express");
 const app = express();
+
 require("dotenv").config();
+
 const {connection} = require("./config/db");
+const {router} = require("./routes/userRoute");
 
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+app.use("/", router);
 
 app.get("/", (req,res)=>{
     res.send("Hello from backend of SMSAPP");
