@@ -6,13 +6,20 @@ require("dotenv").config();
 
 const client = twilio(process.env.twilio_Accountsid, process.env.twilio_Auth_Token);
 
+ {/* Instead of Using Db using temp map for storing the OTP etc */}
+const otpMap = new Map();
+
 const generateOTP = async (req, res) => {
     const {phoneNumber} = req.body;
 
     const otp = Math.floor(1000 + Math.random() * 9000);
 
-    await UserModel.findOneAndUpdate({phoneNumber}, {otp}, {upsert: true});
+    {/* Adding OTP Expiry like real world applications*/}
+    const otpExpirationTime = new Date(Date.now() + 5 * 60 * 1000); // 5 minute expiry
+    otpMap.set(phoneNumber, { otp, expirationTime: otpExpirationTime });
 
+    {/* Twilio sending OTP
+        but it will only verify my number which I added in twilio */}
     client.messages.create({
         body: `Your OTP for registration is: ${otp}`,
         from: process.env.twilio_Phone_Number,
@@ -29,9 +36,14 @@ const generateOTP = async (req, res) => {
 const registerUser = async (req, res) => {
     const { phoneNumber, otp } = req.body;
 
-    const user = await UserModel.findOne({ phoneNumber, otp });
-    if (!user) {
-        return res.send({"Status":400, "Error":"Invalid OTP"});
+    const storedOTPInfo = otpMap.get(phoneNumber);
+
+    if (!storedOTPInfo || storedOTPInfo.otp !== parseInt(otp, 10)) {
+        return res.send({ "Status": 400, "Error": "Invalid OTP"});
+    }
+
+    if (storedOTPInfo.expirationTime < new Date()) {
+        return res.send({ "Status": 400, "Error": "OTP has expired, request a new one"});
     }
 
     const userIpAddress = req.ip;
@@ -42,6 +54,7 @@ const registerUser = async (req, res) => {
             return res.send({"Status":400, "Error":"Error validating IP address"});
         }
 
+        {/* just for testing as I am testing apis using thunderclient*/}
         if (details.ip !== '::ffff:127.0.0.1') {
             return res.send({"Status":404, "Error":"User IP address is not allowed"});
         }
