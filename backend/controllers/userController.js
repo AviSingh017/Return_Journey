@@ -26,10 +26,10 @@ const generateOTP = async (req, res) => {
         to: phoneNumber
     })
         .then(() => {
-            res.send({ "Status":200, "msg":'OTP sent successfully'});
+            res.status(200).send({ "Status":"Success", "msg":'OTP sent successfully'});
         })
         .catch(error => {
-            res.send({"Status":500, "msg":'Error sending OTP', "Error":error});
+            res.status(500).send({"Status":"Error", "msg":'Error sending OTP', "Error":error});
         });
 };
 
@@ -39,11 +39,11 @@ const registerUser = async (req, res) => {
     const storedOTPInfo = otpMap.get(phoneNumber);
 
     if (!storedOTPInfo || storedOTPInfo.otp !== parseInt(otp, 10)) {
-        return res.send({ "Status": 400, "Error": "Invalid OTP"});
+        return res.status(400).send({ "Status":"Error", "Error": "Invalid OTP"});
     }
 
     if (storedOTPInfo.expirationTime < new Date()) {
-        return res.send({ "Status": 400, "Error": "OTP has expired, request a new one"});
+        return res.status(404).send({ "Status": "Error", "Error": "OTP has expired, request a new one"});
     }
 
     const userIpAddress = req.ip;
@@ -51,12 +51,12 @@ const registerUser = async (req, res) => {
     ipinfo(userIpAddress, async (error, details) => {
         if (error) {
             console.log({'Error':error});
-            return res.send({"Status":400, "Error":"Error validating IP address"});
+            return res.status(400).send({"Status":"Error", "Error":"Error validating IP address"});
         }
 
         {/* just for testing as I am testing apis using thunderclient*/}
-        if (details.ip !== '::ffff:127.0.0.1') {
-            return res.send({"Status":404, "Error":"User IP address is not allowed"});
+        if (details.country == 'US') {
+            return res.status(400).send({"Status":"Success", "Error":"User IP address is not allowed"});
         }
 
         const hashedPhoneNumber = bcrypt.hashSync(phoneNumber, 7);
@@ -67,7 +67,7 @@ const registerUser = async (req, res) => {
         });
 
         await newUser.save();
-        res.status(200).send('User registered successfully.');
+        res.status(200).send({"Status":"Success", "msg":"User registered successfully"});
     });
 };
 
